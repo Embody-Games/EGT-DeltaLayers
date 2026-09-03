@@ -1,0 +1,10 @@
+node_modules/
+RELEASE_NOTES.md
+.deploy-target
+*.log
+.DS_Store
+Thumbs.db
+
+# never commit credentials
+.env
+*.token

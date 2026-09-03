@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run the suites
+        run: |
+          if [ ! -d test ]; then
+            echo "no test/ directory yet, nothing to run"
+            exit 0
+          fi
+          for suite in test/run_tests.js test/run_tests_52.js; do
+            if [ -f "$suite" ]; then
+              echo "== $suite"
+              node "$suite"
+            fi
+          done
