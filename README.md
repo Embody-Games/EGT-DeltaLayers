@@ -67,6 +67,9 @@ the changelog categories. Long notes are easier from a file: `--notes notes.json
 The version lives in exactly one place, `const PLUGIN_VERSION` in the plugin file. Everything
 else is derived from it.
 
+More detail, including how pushing works from a Claude session, is in
+[RELEASING.md](RELEASING.md).
+
 ## Tests
 
 ```sh
