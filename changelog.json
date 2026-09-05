@@ -112,5 +112,18 @@
         ]
       }
     ]
+  },
+  "1.4.1": {
+    "title": "Plugin icon",
+    "author": "Embody Games",
+    "date": "2026-09-05",
+    "categories": [
+      {
+        "title": "Added",
+        "list": [
+          "Delta Layers now shows its own icon in Blockbench's plugin list instead of the generic layers glyph. The image is inlined in the .js, so it is still one file to install and there is nothing extra to keep beside it."
+        ]
+      }
+    ]
   }
 }

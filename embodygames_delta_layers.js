@@ -33,11 +33,14 @@
 
 // Must match the filename: embodygames_delta_layers.js
 const PLUGIN_ID = 'embodygames_delta_layers';
-const PLUGIN_VERSION = '1.4.0';
+const PLUGIN_VERSION = '1.4.1';
 const SIDECAR_VERSION = 3; // v3 adds layer groups (type/parent/folded); v1 and v2 still load
 const SETTING_ID = 'embodygames_delta_layers_persist';
 const WATCH_SETTING_ID = 'embodygames_delta_layers_watch';
 const TAG = '[delta-layers]'; // shorter than the id, this goes on every console line
+// 48x48 PNG from delta_layers_icon.png, inlined by scripts/embed_icon.mjs so the plugin stays
+// one file. Regenerate with "npm run icon" after changing the PNG, do not edit by hand.
+const PLUGIN_ICON = 'data:image/png;base64,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';
 
 // Blockbench runs plugin code as new Function('requireNativeModule', 'require', code),
 // so requireNativeModule is a parameter in our enclosing scope. Guard anyway so the
@@ -758,7 +761,7 @@ function promptStaleSidecar(texture, sidecar, paths) {
 	texture.__delta_layers_state = 'skipped';
 	Blockbench.showMessageBox({
 		title: 'Texture changed outside Blockbench',
-		icon: 'layers',
+		icon: PLUGIN_ICON,
 		message: '**' + PathModule.basename(texture.path) + '** has been edited since its layer stack '
 			+ 'was saved (' + sidecar.layers.length + ' layers). Restoring the stack would replace '
 			+ 'what is currently in the file.',
