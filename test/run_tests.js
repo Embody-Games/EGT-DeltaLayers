@@ -1,11 +1,11 @@
 /*
- * Round-trip and edge-case tests for texture_layer_bridge.js, run against the mock
+ * Round-trip and edge-case tests for delta_layers.js, run against the mock
  * Blockbench environment with real files on disk.
  */
 const { loadPlugin, resetProject, settle, Texture, Codec, fs, PathModule } = require('./mock_blockbench');
 const { createCanvas } = require('canvas');
 
-const PLUGIN_PATH = PathModule.resolve(__dirname, '..', 'embodygames_texture_layer_bridge.js');
+const PLUGIN_PATH = PathModule.resolve(__dirname, '..', 'embodygames_delta_layers.js');
 const ROOT = PathModule.join(require('os').tmpdir(), 'lb_test');
 const MODEL_DIR = PathModule.join(ROOT, 'Models', 'Knight');
 const MODEL_PATH = PathModule.join(MODEL_DIR, 'Knight.blockymodel');
@@ -88,7 +88,7 @@ const project_codec = new Codec('project', {
 
 globalThis.Format.codec = blockymodel_codec;
 
-const plugin = loadPlugin(PLUGIN_PATH).embodygames_texture_layer_bridge;
+const plugin = loadPlugin(PLUGIN_PATH).embodygames_delta_layers;
 if (!plugin) {
 	console.error('plugin did not register');
 	process.exit(1);
@@ -276,7 +276,7 @@ async function reopenModel() {
 	resetProject();
 	globalThis.Format.codec = blockymodel_codec;
 	const flat = new Texture().fromPath(TEXTURE_PATH);
-	flat.__layer_bridge_state = 'skipped';
+	flat.__delta_layers_state = 'skipped';
 	globalThis.Project.textures.push(flat);
 	await settle();
 	flat.saved = false;
@@ -297,17 +297,17 @@ async function reopenModel() {
 
 	// =====================================================================
 	section('8. codec handling');
-	check('the bridged codec is wrapped', blockymodel_codec.__layer_bridge_wrapped === true);
-	check('Blockbench\'s own project codec is left alone', project_codec.__layer_bridge_wrapped === undefined);
+	check('the bridged codec is wrapped', blockymodel_codec.__delta_layers_wrapped === true);
+	check('Blockbench\'s own project codec is left alone', project_codec.__delta_layers_wrapped === undefined);
 	// load-order safety net: a codec registered after onload
 	const late_codec = new Codec('late_format', {
 		write(content, path) { fs.writeFileSync(path, content, 'utf-8'); },
 		parse() { return {}; },
 	});
-	check('a codec registered after onload is not wrapped yet', late_codec.__layer_bridge_wrapped === undefined);
+	check('a codec registered after onload is not wrapped yet', late_codec.__delta_layers_wrapped === undefined);
 	globalThis.Blockbench.dispatchEvent('quick_save_model', {});
 	await settle();
-	check('...and gets picked up on the next save', late_codec.__layer_bridge_wrapped === true);
+	check('...and gets picked up on the next save', late_codec.__delta_layers_wrapped === true);
 
 	// =====================================================================
 	section('9. temporary layers (a floating selection) are not persisted');
@@ -316,7 +316,7 @@ async function reopenModel() {
 	fs.rmSync(LAYERS_DIR, { recursive: true, force: true });
 	const temp = new Texture().fromPath(TEXTURE_PATH);
 	// pretend our load pass ran and found nothing, so a delete/write would be allowed
-	temp.__layer_bridge_state = 'absent';
+	temp.__delta_layers_state = 'absent';
 	globalThis.Project.textures.push(temp);
 	await settle();
 	// Blockbench turns layers on temporarily when you drag a selection around
@@ -421,14 +421,14 @@ async function reopenModel() {
 	// =====================================================================
 	section('15. watching can be turned off, and stops cleanly');
 	check('watchers are tracked', !!texture.__eg_layer_watcher);
-	globalThis.settings.embodygames_watch_layer_files.value = false;
-	globalThis.settings.embodygames_watch_layer_files.onChange(false);
+	globalThis.settings.embodygames_delta_layers_watch.value = false;
+	globalThis.settings.embodygames_delta_layers_watch.onChange(false);
 	check('turning the setting off closes them', !texture.__eg_layer_watcher);
-	globalThis.settings.embodygames_watch_layer_files.value = true;
+	globalThis.settings.embodygames_delta_layers_watch.value = true;
 
 	// =====================================================================
 	section('10. settings toggle and unload');
-	globalThis.settings.embodygames_persist_texture_layers.value = false;
+	globalThis.settings.embodygames_delta_layers_persist.value = false;
 	resetProject();
 	fs.rmSync(SIDECAR_PATH, { force: true });
 	fs.rmSync(LAYERS_DIR, { recursive: true, force: true });
@@ -436,16 +436,16 @@ async function reopenModel() {
 	quickSave();
 	await settle();
 	check('nothing is written while the setting is off', !fs.existsSync(SIDECAR_PATH));
-	globalThis.settings.embodygames_persist_texture_layers.value = true;
+	globalThis.settings.embodygames_delta_layers_persist.value = true;
 
 	const wrapped_write = blockymodel_codec.write;
 	plugin.onunload();
 	check('codec.write restored on unload', blockymodel_codec.write !== wrapped_write);
-	check('wrap marker cleared', blockymodel_codec.__layer_bridge_wrapped === undefined);
-	check('setting removed', globalThis.settings.embodygames_persist_texture_layers === undefined);
+	check('wrap marker cleared', blockymodel_codec.__delta_layers_wrapped === undefined);
+	check('setting removed', globalThis.settings.embodygames_delta_layers_persist === undefined);
 	check('menu entries removed', Texture.prototype.menu.structure.length === 0,
 		Texture.prototype.menu.structure.length);
-	check('watch setting removed', globalThis.settings.embodygames_watch_layer_files === undefined);
+	check('watch setting removed', globalThis.settings.embodygames_delta_layers_watch === undefined);
 	resetProject();
 	await buildLayeredTexture();
 	fs.rmSync(SIDECAR_PATH, { force: true });

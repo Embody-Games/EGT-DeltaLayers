@@ -1,4 +1,4 @@
-# Embody Games Texture Layers
+# Delta Layers
 
 Blockbench plugin. Keeps a texture's layer stack (per-layer image, blend mode, opacity, offset,
 visibility, order, and groups) alive across a save and reload for model formats whose file has
@@ -18,8 +18,8 @@ are supported as of 1.3.0, and a stack made in 5.2 survives a round trip through
 
 ## Install
 
-Download `embodygames_texture_layer_bridge.js` and `changelog.json` from the
-[latest release](https://github.com/Embody-Games/EGT-Layer_Plugin/releases/latest) into the
+Download `embodygames_delta_layers.js` and `changelog.json` from the
+[latest release](https://github.com/Embody-Games/EGT-DeltaLayers/releases/latest) into the
 same folder, then in Blockbench: File > Plugins > Load Plugin From File.
 
 Two rules about that folder:
@@ -37,7 +37,7 @@ folder somewhere permanent.
 
 | Path | What it is |
 |---|---|
-| `embodygames_texture_layer_bridge.js` | The whole plugin, plain JS, no build step |
+| `embodygames_delta_layers.js` | The whole plugin, plain JS, no build step |
 | `changelog.json` | Blockbench's changelog format. Also the source of the GitHub release notes |
 | `test/` | Two Node suites against a mock Blockbench built from the real source |
 | `scripts/release.mjs` | Cuts a version: tests, bump, changelog, commit, tag, push |

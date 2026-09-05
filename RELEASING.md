@@ -1,7 +1,7 @@
 # Releasing
 
 The version lives in exactly one place, `const PLUGIN_VERSION` in
-`embodygames_texture_layer_bridge.js`. Everything else is derived from it. There is no build
+`embodygames_delta_layers.js`. Everything else is derived from it. There is no build
 step, so cutting a release is the build.
 
 ## One command
@@ -47,7 +47,7 @@ Read it and use it inline:
 
 ```sh
 TOKEN=$(tr -d '\r\n' < .git/egt-push-token)
-git push --follow-tags "https://x-access-token:$TOKEN@github.com/Embody-Games/EGT-Layer_Plugin.git" main
+git push --follow-tags "https://x-access-token:$TOKEN@github.com/Embody-Games/EGT-DeltaLayers.git" main
 ```
 
 Never write that token into `.git/config`, into a tracked file, or anywhere that leaves the

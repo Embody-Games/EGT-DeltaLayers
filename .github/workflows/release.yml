@@ -36,7 +36,7 @@ jobs:
       - name: Check the tag matches the version in the plugin
         run: |
           V="${GITHUB_REF_NAME#v}"
-          IN_PLUGIN="$(sed -n "s/^const PLUGIN_VERSION = '\(.*\)';$/\1/p" embodygames_texture_layer_bridge.js)"
+          IN_PLUGIN="$(sed -n "s/^const PLUGIN_VERSION = '\(.*\)';$/\1/p" embodygames_delta_layers.js)"
           if [ "$V" != "$IN_PLUGIN" ]; then
             echo "tag is $GITHUB_REF_NAME but the plugin says $IN_PLUGIN"
             exit 1
@@ -52,5 +52,5 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME${TITLE:+: $TITLE}" \
             --notes-file RELEASE_NOTES.md \
-            embodygames_texture_layer_bridge.js \
+            embodygames_delta_layers.js \
             changelog.json

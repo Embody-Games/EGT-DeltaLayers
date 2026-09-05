@@ -1,6 +1,6 @@
 /*
- * Embody Games Texture Layers ("layer bridge") for Blockbench
- * -----------------------------------------------------------
+ * Delta Layers for Blockbench
+ * ---------------------------
  * Keeps a texture's layer stack (per-layer image + blend mode + opacity + offset +
  * visibility + order) alive across a save/reload cycle for model formats whose file
  * has no concept of layers - Hytale's .blockymodel above all, but also Minecraft
@@ -31,13 +31,13 @@
 (function () {
 'use strict';
 
-// Must match the filename: embodygames_texture_layer_bridge.js
-const PLUGIN_ID = 'embodygames_texture_layer_bridge';
-const PLUGIN_VERSION = '1.3.0';
+// Must match the filename: embodygames_delta_layers.js
+const PLUGIN_ID = 'embodygames_delta_layers';
+const PLUGIN_VERSION = '1.4.0';
 const SIDECAR_VERSION = 3; // v3 adds layer groups (type/parent/folded); v1 and v2 still load
-const SETTING_ID = 'embodygames_persist_texture_layers';
-const WATCH_SETTING_ID = 'embodygames_watch_layer_files';
-const TAG = '[embodygames-layers]'; // shorter than the id, this goes on every console line
+const SETTING_ID = 'embodygames_delta_layers_persist';
+const WATCH_SETTING_ID = 'embodygames_delta_layers_watch';
+const TAG = '[delta-layers]'; // shorter than the id, this goes on every console line
 
 // Blockbench runs plugin code as new Function('requireNativeModule', 'require', code),
 // so requireNativeModule is a parameter in our enclosing scope. Guard anyway so the
@@ -356,11 +356,11 @@ function syncSidecarForTexture(texture) {
 	// access denied, layer PNGs missing, user kept an external edit), the sidecar is not
 	// ours to delete.
 	if (!fs.existsSync(paths.json)) return;
-	if (texture.__layer_bridge_state === 'applied' || texture.__layer_bridge_state === 'absent') {
+	if (texture.__delta_layers_state === 'applied' || texture.__delta_layers_state === 'absent') {
 		log('layers no longer present on "' + texture.name + '" - removing its sidecar');
 		stopLayerWatcher(texture);
 		removeSidecar(paths);
-		texture.__layer_bridge_state = 'absent';
+		texture.__delta_layers_state = 'absent';
 	} else {
 		warn('"' + texture.name + '" has a layer sidecar that was never applied this session - '
 			+ 'leaving it alone rather than overwriting or deleting it');
@@ -573,7 +573,7 @@ function writeSidecar(texture, paths) {
 	} catch (error) { /* unreadable: write it */ }
 	if (json_changed) fs.writeFileSync(paths.json, json, 'utf-8');
 
-	texture.__layer_bridge_state = 'applied';
+	texture.__delta_layers_state = 'applied';
 	startLayerWatcher(texture, paths);
 
 	if (files_written || json_changed) {
@@ -644,16 +644,16 @@ function whenTextureReady(texture, callback, timeout_ms) {
 }
 
 function considerTexture(texture) {
-	if (!bridgeEnabled() || !texture || texture.__layer_bridge_state) return;
+	if (!bridgeEnabled() || !texture || texture.__delta_layers_state) return;
 	if (!texture.path || !PathModule.isAbsolute(texture.path)) return;
 	// Somebody else already owns this stack - a .bbmodel carries its layers itself.
 	if (texture.layers_enabled && texture.layers.length) {
-		texture.__layer_bridge_state = 'external';
+		texture.__delta_layers_state = 'external';
 		return;
 	}
 	if (!projectUsesBridge()) return;
 
-	texture.__layer_bridge_state = 'checking';
+	texture.__delta_layers_state = 'checking';
 	// Deferred on purpose: 'add_texture' fires in the middle of the codec's own parse()
 	// run, and we would rather not ask for file access - or touch the texture - while
 	// that is still going.
@@ -662,7 +662,7 @@ function considerTexture(texture) {
 			checkTextureForSidecar(texture);
 		} catch (error) {
 			fail('could not check layers for "' + texture.name + '"', error);
-			texture.__layer_bridge_state = 'skipped';
+			texture.__delta_layers_state = 'skipped';
 		}
 	}, 0);
 }
@@ -670,15 +670,15 @@ function considerTexture(texture) {
 function checkTextureForSidecar(texture) {
 	const fs = getFS(true);
 	if (!fs) {
-		texture.__layer_bridge_state = 'skipped';
+		texture.__delta_layers_state = 'skipped';
 		return;
 	}
 	const paths = sidecarPathsFor(texture);
 	if (!fs.existsSync(paths.json)) {
-		texture.__layer_bridge_state = 'absent';
+		texture.__delta_layers_state = 'absent';
 		return;
 	}
-	texture.__layer_bridge_state = 'pending';
+	texture.__delta_layers_state = 'pending';
 	whenTextureReady(texture, () => restoreFromSidecar(texture, paths));
 }
 
@@ -730,7 +730,7 @@ function readSidecar(paths) {
 function restoreFromSidecar(texture, paths, force) {
 	const sidecar = readSidecar(paths);
 	if (!sidecar) {
-		texture.__layer_bridge_state = 'skipped';
+		texture.__delta_layers_state = 'skipped';
 		return;
 	}
 
@@ -755,7 +755,7 @@ function restoreFromSidecar(texture, paths, force) {
  * another program. Reapplying the old stack would silently discard that, so ask.
  */
 function promptStaleSidecar(texture, sidecar, paths) {
-	texture.__layer_bridge_state = 'skipped';
+	texture.__delta_layers_state = 'skipped';
 	Blockbench.showMessageBox({
 		title: 'Texture changed outside Blockbench',
 		icon: 'layers',
@@ -889,7 +889,7 @@ function applyLayers(texture, sidecar, paths, keep_current_as_top_layer) {
 			const layers = built.filter(Boolean);
 			if (!layers.length) {
 				warn('none of the layers for "' + texture.name + '" could be restored');
-				texture.__layer_bridge_state = 'skipped';
+				texture.__delta_layers_state = 'skipped';
 				return;
 			}
 
@@ -935,7 +935,7 @@ function applyLayers(texture, sidecar, paths, keep_current_as_top_layer) {
 		})
 		.catch((error) => {
 			fail('could not restore layers for "' + texture.name + '"', error);
-			texture.__layer_bridge_state = 'skipped';
+			texture.__delta_layers_state = 'skipped';
 		});
 }
 
@@ -983,7 +983,7 @@ function installLayers(texture, layers, sidecar, force_dirty) {
 
 	texture.saved = force_dirty ? false : texture_was_saved;
 	if (project_was_saved !== undefined) Project.saved = project_was_saved;
-	texture.__layer_bridge_state = 'applied';
+	texture.__delta_layers_state = 'applied';
 	startLayerWatcher(texture, sidecarPathsFor(texture));
 
 	if (typeof updateInterfacePanels === 'function') updateInterfacePanels();
@@ -1158,12 +1158,12 @@ function wrapCodec(codec) {
 	// The marker deliberately does NOT include the plugin id: if an older copy of this
 	// plugin is still loaded under its previous name, we want it to stop us wrapping the
 	// same codec twice rather than both of us writing the same sidecars on every save.
-	if (!codec || codec.__layer_bridge_wrapped || !codecNeedsLayerBridge(codec)) return;
+	if (!codec || codec.__delta_layers_wrapped || !codecNeedsLayerBridge(codec)) return;
 	if (typeof codec.write !== 'function' || typeof codec.parse !== 'function') return;
 
-	codec.__layer_bridge_wrapped = true;
-	codec.__layer_bridge_write = codec.write;
-	codec.__layer_bridge_parse = codec.parse;
+	codec.__delta_layers_wrapped = true;
+	codec.__delta_layers_write = codec.write;
+	codec.__delta_layers_parse = codec.parse;
 	wrapped_codecs.push(codec);
 
 	const original_write = codec.write;
@@ -1209,11 +1209,11 @@ function wrapAllKnownCodecs() {
 function unwrapAllCodecs() {
 	for (const codec of wrapped_codecs) {
 		try {
-			if (codec.__layer_bridge_write) codec.write = codec.__layer_bridge_write;
-			if (codec.__layer_bridge_parse) codec.parse = codec.__layer_bridge_parse;
-			delete codec.__layer_bridge_write;
-			delete codec.__layer_bridge_parse;
-			delete codec.__layer_bridge_wrapped;
+			if (codec.__delta_layers_write) codec.write = codec.__delta_layers_write;
+			if (codec.__delta_layers_parse) codec.parse = codec.__delta_layers_parse;
+			delete codec.__delta_layers_write;
+			delete codec.__delta_layers_parse;
+			delete codec.__delta_layers_wrapped;
 		} catch (error) {
 			fail('could not unhook a codec', error);
 		}
@@ -1230,8 +1230,8 @@ function contextTexture(context) {
 }
 
 function setupActions() {
-	const save_action = new Action('embodygames_save_texture_layers', {
-		name: 'Save Texture Layers Now',
+	const save_action = new Action('embodygames_delta_layers_save', {
+		name: 'Save Delta Layers Now',
 		description: 'Write this texture\'s layer stack to its sidecar file straight away',
 		icon: 'save',
 		category: 'textures',
@@ -1254,8 +1254,8 @@ function setupActions() {
 		},
 	});
 
-	const reload_action = new Action('embodygames_reload_texture_layers', {
-		name: 'Reload Texture Layers From Disk',
+	const reload_action = new Action('embodygames_delta_layers_reload', {
+		name: 'Reload Delta Layers From Disk',
 		description: 'Rebuild this texture\'s layer stack from its sidecar file, ignoring the staleness check',
 		icon: 'layers',
 		category: 'textures',
@@ -1277,8 +1277,8 @@ function setupActions() {
 		},
 	});
 
-	const forget_action = new Action('embodygames_delete_texture_layers', {
-		name: 'Delete Saved Texture Layers',
+	const forget_action = new Action('embodygames_delta_layers_delete', {
+		name: 'Delete Saved Delta Layers',
 		description: 'Remove this texture\'s sidecar file and its per-layer images',
 		icon: 'delete',
 		category: 'textures',
@@ -1306,7 +1306,7 @@ function setupActions() {
 			}, (button) => {
 				if (button !== 0) return;
 				removeSidecar(sidecarPathsFor(texture));
-				texture.__layer_bridge_state = 'absent';
+				texture.__delta_layers_state = 'absent';
 				Blockbench.showQuickMessage('Deleted saved layers for ' + texture.name, 1600);
 			});
 		},
@@ -1341,7 +1341,7 @@ function removeMenuEntries() {
 // ---------------------------------------------------------------------------
 
 BBPlugin.register(PLUGIN_ID, {
-	title: 'Embody Games Texture Layers',
+	title: 'Delta Layers',
 	author: 'Embody Games',
 	description: 'Embody Games internal tool. Keeps texture layers (image, blend mode, opacity, '
 		+ 'order) alive across saves for formats that do not store them natively, such as Hytale\'s '
@@ -1357,7 +1357,7 @@ BBPlugin.register(PLUGIN_ID, {
 	has_changelog: true,
 	onload() {
 		new Setting(SETTING_ID, {
-			name: 'Persist texture layers (Embody Games)',
+			name: 'Delta Layers: persist texture layers',
 			description: 'Save each texture\'s layer stack to a sidecar file on export, and restore it on load, '
 				+ 'for formats that cannot store layers themselves.',
 			category: 'export',
@@ -1366,7 +1366,7 @@ BBPlugin.register(PLUGIN_ID, {
 		deletables.push(settings[SETTING_ID]);
 
 		new Setting(WATCH_SETTING_ID, {
-			name: 'Reload layer images edited outside Blockbench',
+			name: 'Delta Layers: reload layer images edited outside Blockbench',
 			description: 'Watch each texture\'s .layers folder and reload a layer as soon as another '
 				+ 'program saves over its PNG, the way Blockbench does for unlayered textures.',
 			category: 'export',

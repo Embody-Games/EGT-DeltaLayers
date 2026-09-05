@@ -1,13 +1,13 @@
 {
-  "name": "embodygames-texture-layer-bridge",
-  "version": "1.3.0",
+  "name": "egt-delta-layers",
+  "version": "1.4.0",
   "private": true,
   "description": "Blockbench plugin that keeps a texture's layer stack alive across saves by writing a sidecar next to the texture PNG.",
   "author": "Embody Games",
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Embody-Games/EGT-Layer_Plugin.git"
+    "url": "https://github.com/Embody-Games/EGT-DeltaLayers.git"
   },
   "scripts": {
     "test": "node test/run_tests.js && node test/run_tests_52.js",

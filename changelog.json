@@ -96,5 +96,21 @@
         ]
       }
     ]
+  },
+  "1.4.0": {
+    "title": "Renamed to Delta Layers",
+    "author": "Embody Games",
+    "date": "2026-09-05",
+    "categories": [
+      {
+        "title": "Changed",
+        "list": [
+          "Renamed to Delta Layers. The plugin file is now embodygames_delta_layers.js. Delete the old embodygames_texture_layer_bridge.js from wherever Blockbench loaded it before you load this one, or Blockbench runs both and they fight over your sidecars.",
+          "The two settings under Settings then Export are back at their defaults, because their ids changed along with the plugin id. If you had either of them turned off, turn it off again.",
+          "The right-click entries on a texture are now Save Delta Layers Now, Reload Delta Layers From Disk and Delete Saved Delta Layers.",
+          "Nothing changes on disk. A layer stack saved by any earlier version loads exactly as before, so there is nothing to re-save."
+        ]
+      }
+    ]
   }
 }
