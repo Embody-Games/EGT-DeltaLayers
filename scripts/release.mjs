@@ -48,6 +48,7 @@ function git(args, { capture = false } = {}) {
 		cwd: root,
 		encoding: 'utf8',
 		stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
+		env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
 	});
 }
 
@@ -198,8 +199,26 @@ git(['add', '-A']);
 git(['commit', '-m', subject, '-m', body]);
 git(['tag', '-a', `v${version}`, '-m', subject, '-m', body]);
 
+// The device bridge has no stored git credential, so a token scoped to this repo can sit
+// at .git/egt-push-token. Anything under .git is untracked, so it is never committed. Git
+// redacts the credentials when it echoes the URL back.
+function push(branch) {
+	const tokenPath = join(root, '.git', 'egt-push-token');
+	const token = existsSync(tokenPath) ? readFileSync(tokenPath, 'utf8').trim() : '';
+	const url = git(['remote', 'get-url', opts.remote], { capture: true }).trim();
+	const useToken = token && url.startsWith('https://github.com/');
+	const target = useToken
+		? url.replace('https://github.com/', `https://x-access-token:${token}@github.com/`)
+		: opts.remote;
+
+	git(['push', '--follow-tags', target, branch]);
+	// Pushing to a URL rather than a remote name leaves refs/remotes/<remote> behind, which
+	// makes the clone look unpushed in GitHub Desktop.
+	if (useToken) git(['fetch', opts.remote]);
+}
+
 if (opts.push) {
-	git(['push', '--follow-tags', opts.remote, branch]);
+	push(branch);
 	console.log(`\nrelease: pushed v${version} to ${opts.remote}/${branch}. The release workflow publishes the notes.`);
 } else {
 	console.log(`\nrelease: committed and tagged v${version} locally. Push with:\n  git push --follow-tags ${opts.remote} ${branch}`);

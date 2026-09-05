@@ -43,7 +43,10 @@ sidecars still load.
 Claude reaches this folder through the Cowork device bridge, a shell with network access but no
 stored git credential of its own. A GitHub token scoped to this repository alone lives at
 `.git/egt-push-token`, which is outside version control, so it is never committed or pushed.
-Read it and use it inline:
+`npm run release` handles this itself: it reads `.git/egt-push-token` when the file is
+there, pushes through it, then fetches so the clone does not look unpushed afterwards.
+Without the file it pushes to `origin` and fails fast rather than hanging on a prompt.
+For a push outside the release script, do it by hand:
 
 ```sh
 TOKEN=$(tr -d '\r\n' < .git/egt-push-token)
