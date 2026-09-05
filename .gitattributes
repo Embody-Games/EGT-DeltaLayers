@@ -1,0 +1,4 @@
+# Something on the Windows side rewrote release.yml with CRLF, which turns every
+# `run:` block in a workflow into shell that dies on $'\r'. Normalise on commit.
+* text=auto eol=lf
+*.png binary
