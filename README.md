@@ -18,7 +18,7 @@ are supported as of 1.3.0, and a stack made in 5.2 survives a round trip through
 
 ## Install
 
-Download `embodygames_delta_layers.js` and `changelog.json` from the
+Download `delta_layers.js` and `changelog.json` from the
 [latest release](https://github.com/Embody-Games/EGT-DeltaLayers/releases/latest) into the
 same folder, then in Blockbench: File > Plugins > Load Plugin From File.
 
@@ -37,7 +37,7 @@ folder somewhere permanent.
 
 | Path | What it is |
 |---|---|
-| `embodygames_delta_layers.js` | The whole plugin, plain JS, no build step |
+| `delta_layers.js` | The whole plugin, plain JS, no build step |
 | `changelog.json` | Blockbench's changelog format. Also the source of the GitHub release notes |
 | `test/` | Two Node suites against a mock Blockbench built from the real source |
 | `scripts/release.mjs` | Cuts a version: tests, bump, changelog, commit, tag, push |

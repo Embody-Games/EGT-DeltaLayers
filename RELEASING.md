@@ -1,7 +1,7 @@
 # Releasing
 
 The version lives in exactly one place, `const PLUGIN_VERSION` in
-`embodygames_delta_layers.js`. Everything else is derived from it. There is no build
+`delta_layers.js`. Everything else is derived from it. There is no build
 step, so cutting a release is the build.
 
 ## One command

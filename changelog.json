@@ -125,5 +125,20 @@
         ]
       }
     ]
+  },
+  "1.5.0": {
+    "title": "File is now delta_layers.js",
+    "author": "Embody Games",
+    "date": "2026-09-05",
+    "categories": [
+      {
+        "title": "Changed",
+        "list": [
+          "The plugin file is now delta_layers.js, without the embodygames prefix, and the plugin id matches it. Delete embodygames_delta_layers.js, and embodygames_texture_layer_bridge.js if it is still around, from wherever Blockbench loads plugins before loading this one. Blockbench keys a plugin on its filename, so an old file left behind runs as a second copy of the plugin.",
+          "The setting and menu action ids dropped the prefix as well, so the two settings under Settings then Export are at their defaults again.",
+          "Sidecars are untouched, as always. A layer stack saved by any earlier version loads exactly as before."
+        ]
+      }
+    ]
   }
 }

@@ -29,7 +29,7 @@ fs.writeFileSync = function (path, ...rest) {
 	return real_write.call(fs, path, ...rest);
 };
 
-const plugin = loadPlugin(PathModule.resolve(__dirname, '..', 'embodygames_delta_layers.js')).embodygames_delta_layers;
+const plugin = loadPlugin(PathModule.resolve(__dirname, '..', 'delta_layers.js')).delta_layers;
 plugin.onload();
 
 function quickSave() {

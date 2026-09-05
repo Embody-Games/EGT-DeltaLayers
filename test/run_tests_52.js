@@ -17,7 +17,7 @@ const {
 } = require('./mock_blockbench');
 const { createCanvas } = require('canvas');
 
-const PLUGIN_PATH = PathModule.resolve(__dirname, '..', 'embodygames_delta_layers.js');
+const PLUGIN_PATH = PathModule.resolve(__dirname, '..', 'delta_layers.js');
 const ROOT = PathModule.join(require('os').tmpdir(), 'lb_test_52');
 const MODEL_DIR = PathModule.join(ROOT, 'Models', 'Knight');
 const MODEL_PATH = PathModule.join(MODEL_DIR, 'Knight.blockymodel');
@@ -77,7 +77,7 @@ const codec = new Codec('blockymodel', {
 globalThis.Format.codec = codec;
 
 enableLayerGroups(); // start as 5.2
-const plugin = loadPlugin(PLUGIN_PATH).embodygames_delta_layers;
+const plugin = loadPlugin(PLUGIN_PATH).delta_layers;
 plugin.onload();
 
 function quickSave() {

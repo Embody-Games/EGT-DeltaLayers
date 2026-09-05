@@ -18,7 +18,7 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ICON = 'delta_layers_icon.png';
-const PLUGIN = 'embodygames_delta_layers.js';
+const PLUGIN = 'delta_layers.js';
 const ICON_LINE = /^const PLUGIN_ICON = '[^']*';$/m;
 const TAG_LINE = /^const TAG = '[^']*';.*$/m;
 const PNG_MAGIC = '89504e470d0a1a0a';

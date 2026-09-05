@@ -5,7 +5,7 @@
 const { loadPlugin, resetProject, settle, Texture, Codec, fs, PathModule } = require('./mock_blockbench');
 const { createCanvas } = require('canvas');
 
-const PLUGIN_PATH = PathModule.resolve(__dirname, '..', 'embodygames_delta_layers.js');
+const PLUGIN_PATH = PathModule.resolve(__dirname, '..', 'delta_layers.js');
 const ROOT = PathModule.join(require('os').tmpdir(), 'lb_test');
 const MODEL_DIR = PathModule.join(ROOT, 'Models', 'Knight');
 const MODEL_PATH = PathModule.join(MODEL_DIR, 'Knight.blockymodel');
@@ -88,7 +88,7 @@ const project_codec = new Codec('project', {
 
 globalThis.Format.codec = blockymodel_codec;
 
-const plugin = loadPlugin(PLUGIN_PATH).embodygames_delta_layers;
+const plugin = loadPlugin(PLUGIN_PATH).delta_layers;
 if (!plugin) {
 	console.error('plugin did not register');
 	process.exit(1);
@@ -421,14 +421,14 @@ async function reopenModel() {
 	// =====================================================================
 	section('15. watching can be turned off, and stops cleanly');
 	check('watchers are tracked', !!texture.__eg_layer_watcher);
-	globalThis.settings.embodygames_delta_layers_watch.value = false;
-	globalThis.settings.embodygames_delta_layers_watch.onChange(false);
+	globalThis.settings.delta_layers_watch.value = false;
+	globalThis.settings.delta_layers_watch.onChange(false);
 	check('turning the setting off closes them', !texture.__eg_layer_watcher);
-	globalThis.settings.embodygames_delta_layers_watch.value = true;
+	globalThis.settings.delta_layers_watch.value = true;
 
 	// =====================================================================
 	section('10. settings toggle and unload');
-	globalThis.settings.embodygames_delta_layers_persist.value = false;
+	globalThis.settings.delta_layers_persist.value = false;
 	resetProject();
 	fs.rmSync(SIDECAR_PATH, { force: true });
 	fs.rmSync(LAYERS_DIR, { recursive: true, force: true });
@@ -436,16 +436,16 @@ async function reopenModel() {
 	quickSave();
 	await settle();
 	check('nothing is written while the setting is off', !fs.existsSync(SIDECAR_PATH));
-	globalThis.settings.embodygames_delta_layers_persist.value = true;
+	globalThis.settings.delta_layers_persist.value = true;
 
 	const wrapped_write = blockymodel_codec.write;
 	plugin.onunload();
 	check('codec.write restored on unload', blockymodel_codec.write !== wrapped_write);
 	check('wrap marker cleared', blockymodel_codec.__delta_layers_wrapped === undefined);
-	check('setting removed', globalThis.settings.embodygames_delta_layers_persist === undefined);
+	check('setting removed', globalThis.settings.delta_layers_persist === undefined);
 	check('menu entries removed', Texture.prototype.menu.structure.length === 0,
 		Texture.prototype.menu.structure.length);
-	check('watch setting removed', globalThis.settings.embodygames_delta_layers_watch === undefined);
+	check('watch setting removed', globalThis.settings.delta_layers_watch === undefined);
 	resetProject();
 	await buildLayeredTexture();
 	fs.rmSync(SIDECAR_PATH, { force: true });

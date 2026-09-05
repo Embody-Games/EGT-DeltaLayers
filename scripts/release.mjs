@@ -33,7 +33,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PLUGIN = 'embodygames_delta_layers.js';
+const PLUGIN = 'delta_layers.js';
 const VERSION_LINE = /^(const PLUGIN_VERSION = ')(\d+\.\d+\.\d+)(';)$/m;
 const CATEGORY_ORDER = ['Added', 'Changed', 'Fixed', 'Removed', 'Safeguards'];
 const SUITES = ['run_tests.js', 'run_tests_52.js'];

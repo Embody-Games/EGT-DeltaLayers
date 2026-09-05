@@ -31,12 +31,12 @@
 (function () {
 'use strict';
 
-// Must match the filename: embodygames_delta_layers.js
-const PLUGIN_ID = 'embodygames_delta_layers';
-const PLUGIN_VERSION = '1.4.1';
+// Must match the filename: delta_layers.js
+const PLUGIN_ID = 'delta_layers';
+const PLUGIN_VERSION = '1.5.0';
 const SIDECAR_VERSION = 3; // v3 adds layer groups (type/parent/folded); v1 and v2 still load
-const SETTING_ID = 'embodygames_delta_layers_persist';
-const WATCH_SETTING_ID = 'embodygames_delta_layers_watch';
+const SETTING_ID = 'delta_layers_persist';
+const WATCH_SETTING_ID = 'delta_layers_watch';
 const TAG = '[delta-layers]'; // shorter than the id, this goes on every console line
 // 48x48 PNG from delta_layers_icon.png, inlined by scripts/embed_icon.mjs so the plugin stays
 // one file. Regenerate with "npm run icon" after changing the PNG, do not edit by hand.
@@ -1233,7 +1233,7 @@ function contextTexture(context) {
 }
 
 function setupActions() {
-	const save_action = new Action('embodygames_delta_layers_save', {
+	const save_action = new Action('delta_layers_save', {
 		name: 'Save Delta Layers Now',
 		description: 'Write this texture\'s layer stack to its sidecar file straight away',
 		icon: 'save',
@@ -1257,7 +1257,7 @@ function setupActions() {
 		},
 	});
 
-	const reload_action = new Action('embodygames_delta_layers_reload', {
+	const reload_action = new Action('delta_layers_reload', {
 		name: 'Reload Delta Layers From Disk',
 		description: 'Rebuild this texture\'s layer stack from its sidecar file, ignoring the staleness check',
 		icon: 'layers',
@@ -1280,7 +1280,7 @@ function setupActions() {
 		},
 	});
 
-	const forget_action = new Action('embodygames_delta_layers_delete', {
+	const forget_action = new Action('delta_layers_delete', {
 		name: 'Delete Saved Delta Layers',
 		description: 'Remove this texture\'s sidecar file and its per-layer images',
 		icon: 'delete',
