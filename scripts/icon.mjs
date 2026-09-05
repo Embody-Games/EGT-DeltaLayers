@@ -24,7 +24,7 @@ const TAG_LINE = /^const TAG = '[^']*';.*$/m;
 const PNG_MAGIC = '89504e470d0a1a0a';
 
 const die = (message) => {
-	console.error(`embed_icon: ${message}`);
+	console.error(`icon: ${message}`);
 	process.exit(1);
 };
 
@@ -33,8 +33,8 @@ if (png.subarray(0, 8).toString('hex') !== PNG_MAGIC) die(`${ICON} is not a PNG`
 
 const width = png.readUInt32BE(16);
 const height = png.readUInt32BE(20);
-if (width !== height) console.warn(`embed_icon: ${ICON} is ${width}x${height}, not square`);
-if (width < 48) console.warn(`embed_icon: ${ICON} is ${width}px, the plugin browser draws it at 48px`);
+if (width !== height) console.warn(`icon: ${ICON} is ${width}x${height}, not square`);
+if (width < 48) console.warn(`icon: ${ICON} is ${width}px, the plugin browser draws it at 48px`);
 
 const url = `data:image/png;base64,${png.toString('base64')}`;
 const line = `const PLUGIN_ICON = '${url}';`;
@@ -50,13 +50,13 @@ if (ICON_LINE.test(source)) {
 	if (!tag) die(`could not find the TAG line in ${PLUGIN} to insert after`);
 	out = source.replace(
 		TAG_LINE,
-		`${tag[0]}\n// 48x48 PNG from ${ICON}, inlined by scripts/embed_icon.mjs so the plugin stays\n// one file. Regenerate with "npm run icon" after changing the PNG, do not edit by hand.\n${line}`
+		`${tag[0]}\n// 48x48 PNG from ${ICON}, inlined by scripts/icon.mjs so the plugin stays\n// one file. Regenerate with "npm run icon" after changing the PNG, do not edit by hand.\n${line}`
 	);
 }
 
 if (out === source) {
-	console.log(`embed_icon: already current (${png.length} bytes of PNG, ${url.length} of data URL)`);
+	console.log(`icon: already current (${png.length} bytes of PNG, ${url.length} of data URL)`);
 } else {
 	writeFileSync(pluginPath, out);
-	console.log(`embed_icon: embedded ${ICON} (${width}x${height}, ${png.length} bytes -> ${url.length} char data URL)`);
+	console.log(`icon: embedded ${ICON} (${width}x${height}, ${png.length} bytes -> ${url.length} char data URL)`);
 }

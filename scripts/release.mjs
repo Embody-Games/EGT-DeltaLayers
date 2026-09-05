@@ -173,7 +173,7 @@ if (opts.test) {
 if (opts.dry) {
 	console.log(`\n--- dry run, nothing written ---\n${current} -> ${version} on branch ${branch}\n`);
 	console.log(`${subject}\n\n${body}\n`);
-	console.log(`would commit ${PLUGIN}, changelog.json, package.json`);
+	console.log(`would commit ${PLUGIN}, changelog.json, package.json, package-lock.json`);
 	console.log(`would tag v${version}${opts.push ? ` and push to ${opts.remote}/${branch}` : ' (no push)'}`);
 	process.exit(0);
 }
@@ -192,6 +192,16 @@ if (existsSync(packagePath)) {
 	const pkg = JSON.parse(readFileSync(packagePath, 'utf8'));
 	pkg.version = version;
 	writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+}
+
+// npm writes the version into the lockfile in two places. Without this the lockfile
+// drifts behind package.json, which it had done since 1.3.0.
+const lockPath = join(root, 'package-lock.json');
+if (existsSync(lockPath)) {
+	const lock = JSON.parse(readFileSync(lockPath, 'utf8'));
+	lock.version = version;
+	if (lock.packages?.['']) lock.packages[''].version = version;
+	writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
 }
 
 // --- commit, tag, push ----------------------------------------------------

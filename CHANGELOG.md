@@ -1,0 +1,108 @@
+# Changelog
+
+Generated from `changelog.json` by `scripts/changelog.mjs`. Edit that file, not this one.
+
+## v1.5.1 - The icon now actually reaches the plugin list
+
+_2026-09-05_
+
+### Fixed
+
+- The icon added in 1.4.1 never showed up. It had been attached to one of the plugin's dialogs instead of the plugin registration, so Blockbench kept drawing the generic layers glyph in the plugin list. The registration now carries the image and the dialog has its glyph back.
+
+## v1.5.0 - File is now delta_layers.js
+
+_2026-09-05_
+
+### Changed
+
+- The plugin file is now delta_layers.js, without the embodygames prefix, and the plugin id matches it. Delete embodygames_delta_layers.js, and embodygames_texture_layer_bridge.js if it is still around, from wherever Blockbench loads plugins before loading this one. Blockbench keys a plugin on its filename, so an old file left behind runs as a second copy of the plugin.
+- The setting and menu action ids dropped the prefix as well, so the two settings under Settings then Export are at their defaults again.
+- Sidecars are untouched, as always. A layer stack saved by any earlier version loads exactly as before.
+
+## v1.4.1 - Plugin icon
+
+_2026-09-05_
+
+### Added
+
+- Delta Layers now shows its own icon in Blockbench's plugin list instead of the generic layers glyph. The image is inlined in the .js, so it is still one file to install and there is nothing extra to keep beside it.
+
+## v1.4.0 - Renamed to Delta Layers
+
+_2026-09-05_
+
+### Changed
+
+- Renamed to Delta Layers. The plugin file is now embodygames_delta_layers.js. Delete the old embodygames_texture_layer_bridge.js from wherever Blockbench loaded it before you load this one, or Blockbench runs both and they fight over your sidecars.
+- The two settings under Settings then Export are back at their defaults, because their ids changed along with the plugin id. If you had either of them turned off, turn it off again.
+- The right-click entries on a texture are now Save Delta Layers Now, Reload Delta Layers From Disk and Delete Saved Delta Layers.
+- Nothing changes on disk. A layer stack saved by any earlier version loads exactly as before, so there is nothing to re-save.
+
+## v1.3.0
+
+_2026-09-03_
+
+### Added
+
+- Support for the layer groups added in Blockbench 5.2. Groups, their names, their folded state and which layers are inside them all survive a save and reload.
+- Groups you cannot see are kept anyway. Group your layers in 5.2, go back to 5.1 where groups do not exist, work and save there as much as you like, and the groups are still there when you return to 5.2. The same applies to any future layer type this plugin does not recognise.
+
+### Fixed
+
+- On Blockbench 5.2 a texture containing a layer group stopped saving its layers entirely. A group has no image of its own, and the plugin assumed every item in the stack did. The error only showed in the console, so it looked like the plugin had quietly stopped working.
+- Refuses to load or overwrite a sidecar written by a newer version of the plugin, instead of flattening it into something lossy.
+
+### Changed
+
+- Sidecar files are now version 3 and record the type and parent of every item. Versions 1 and 2 still load.
+
+## v1.2.0
+
+_2026-09-03_
+
+### Added
+
+- Layer images are now watched. Save one from Photoshop, Aseprite or anything else and Blockbench reloads that layer straight away, the way it already does for textures without layers.
+- Layer images edited while the project was closed are picked up on load, and the texture is marked unsaved so the flat PNG gets regenerated on the next save. Without that the game would keep reading the old composite.
+- Setting to turn file watching off, under Settings then Export.
+
+### Fixed
+
+- An edit made to a layer image outside Blockbench used to be silently overwritten by the next save.
+- Saving no longer rewrites layer images that did not change. For a three-layer texture, a save with nothing changed went from four files written to none, and a save with one layer changed now rewrites exactly one image.
+
+### Changed
+
+- Sidecar files are now version 2 and record a hash for each layer image. Version 1 files still load; the first save after upgrading rewrites them once.
+
+## v1.1.0
+
+_2026-09-02_
+
+### Changed
+
+- Renamed to Embody Games Texture Layers. The plugin id, both settings and all three action ids are now prefixed with embodygames, so nothing can collide with another plugin.
+- The file has to stay named embodygames_texture_layer_bridge.js. Blockbench takes a file-loaded plugin's id from its filename and refuses to load it when the two disagree.
+
+## v1.0.0
+
+_2026-09-02_
+
+### Added
+
+- Saves each texture's layer stack next to the texture PNG and rebuilds it when the model is opened again, so layers survive formats that cannot store them.
+- One PNG per layer in a Texture.layers folder, plus a Texture.layers.json recording order, blend mode, opacity, offset and visibility. The model file itself is never touched.
+- Works for any format whose codec flattens textures, including Hytale .blockymodel and the Minecraft formats. Blockbench's own .bbmodel is left alone, since it already stores layers itself.
+- Attachment and collection textures are covered automatically, because the sidecar follows the texture file rather than the model.
+- Right-click a texture for Save Texture Layers Now, Reload Texture Layers From Disk, and Delete Saved Texture Layers.
+- Setting to turn layer persistence off, under Settings then Export.
+
+### Safeguards
+
+- If the flat texture PNG was edited outside Blockbench, you are asked what to do rather than having that edit silently replaced. One of the choices restores the layers and keeps the outside edit as a top layer, so nothing is lost either way.
+- A stale sidecar is only deleted when this plugin was the thing that put the texture in its current state. If it could not read the sidecar, it leaves it alone instead of deleting it.
+- A missing layer image skips that one layer with a warning instead of aborting the whole load.
+- A hand-edited sidecar cannot point at files outside the texture's own folder.
+- Restoring a stack does not mark the project or texture as having unsaved changes.
+- Floating selections, which Blockbench implements as temporary layers, are not written to disk.
