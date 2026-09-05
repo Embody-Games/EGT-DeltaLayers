@@ -33,7 +33,7 @@
 
 // Must match the filename: delta_layers.js
 const PLUGIN_ID = 'delta_layers';
-const PLUGIN_VERSION = '1.5.0';
+const PLUGIN_VERSION = '1.5.1';
 const SIDECAR_VERSION = 3; // v3 adds layer groups (type/parent/folded); v1 and v2 still load
 const SETTING_ID = 'delta_layers_persist';
 const WATCH_SETTING_ID = 'delta_layers_watch';
@@ -761,7 +761,7 @@ function promptStaleSidecar(texture, sidecar, paths) {
 	texture.__delta_layers_state = 'skipped';
 	Blockbench.showMessageBox({
 		title: 'Texture changed outside Blockbench',
-		icon: PLUGIN_ICON,
+		icon: 'layers',
 		message: '**' + PathModule.basename(texture.path) + '** has been edited since its layer stack '
 			+ 'was saved (' + sidecar.layers.length + ' layers). Restoring the stack would replace '
 			+ 'what is currently in the file.',
@@ -1349,7 +1349,7 @@ BBPlugin.register(PLUGIN_ID, {
 	description: 'Embody Games internal tool. Keeps texture layers (image, blend mode, opacity, '
 		+ 'order) alive across saves for formats that do not store them natively, such as Hytale\'s '
 		+ '.blockymodel, by writing a sidecar file next to each texture.',
-	icon: 'layers',
+	icon: PLUGIN_ICON,
 	version: PLUGIN_VERSION,
 	tags: ['Texturing', 'Hytale', 'Embody Games'],
 	variant: 'desktop', // needs real filesystem access

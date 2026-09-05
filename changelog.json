@@ -140,5 +140,18 @@
         ]
       }
     ]
+  },
+  "1.5.1": {
+    "title": "The icon now actually reaches the plugin list",
+    "author": "Embody Games",
+    "date": "2026-09-05",
+    "categories": [
+      {
+        "title": "Fixed",
+        "list": [
+          "The icon added in 1.4.1 never showed up. It had been attached to one of the plugin's dialogs instead of the plugin registration, so Blockbench kept drawing the generic layers glyph in the plugin list. The registration now carries the image and the dialog has its glyph back."
+        ]
+      }
+    ]
   }
 }
