@@ -23,6 +23,11 @@ Pushing the tag is what publishes. `.github/workflows/release.yml` reruns the su
 if the tag disagrees with `PLUGIN_VERSION`, then publishes a GitHub release whose body is that
 version's `changelog.json` entry, with the plugin and `changelog.json` attached.
 
+Once the release exists, the same workflow posts that version's changelog entry to the
+`#addons` forum thread in Discord. There is no bot: it is one HTTP POST to a webhook and
+then the workflow exits. The step is `continue-on-error`, so a Discord outage cannot fail
+an otherwise good release. `CLAUDE.md` covers the configuration.
+
 Bump by what changed: `patch` for a fix with no new behaviour, `minor` for new behaviour or a
 new sidecar version, `major` only for a sidecar format older plugins cannot read. Repo-only
 changes such as CI, README or scripts get a plain commit: no version, no tag, no changelog
@@ -54,7 +59,8 @@ git push --follow-tags "https://x-access-token:$TOKEN@github.com/Embody-Games/EG
 ```
 
 Never write that token into `.git/config`, into a tracked file, or anywhere that leaves the
-machine.
+machine. Note that `git push -u` writes the URL you pushed to into `.git/config`, token and all, so
+avoid `-u` when pushing this way.
 
 **On a different computer** the file will not exist, because `.git` is per clone. Either put
 the token there from a password manager, or push with that machine's own git credentials. The
