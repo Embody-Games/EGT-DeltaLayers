@@ -10,6 +10,7 @@ jobs:
   announce:
     runs-on: ubuntu-latest
     env:
+      PLUGIN_FILE: delta_layers.js
       PLUGIN_NAME: Delta Layers
       PLUGIN_ICON_URL: https://raw.githubusercontent.com/Embody-Games/EGT-DeltaLayers/main/delta_layers_icon.png
       PLUGIN_COLOR: 5865F2
