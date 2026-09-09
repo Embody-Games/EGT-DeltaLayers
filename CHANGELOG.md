@@ -2,6 +2,19 @@
 
 Generated from `changelog.json` by `scripts/changelog.mjs`. Edit that file, not this one.
 
+## v1.6.0 - Nothing gets saved over
+
+_2026-09-09_
+
+### Fixed
+
+- Choosing "Keep the file as it is" when a texture had been edited outside Blockbench, then turning layers on and saving, deleted the saved layer stack it had just promised to leave alone. A save now refuses to write over a stack this session did not restore, tells you, and points at Reload Delta Layers From Disk or Save Delta Layers Now depending on which one you want.
+- Layer images edited in another program were overwritten on the next save without being looked at. Each one is now checked against what Blockbench last wrote, and if it has changed since, the file is kept and you are asked which version to keep. Answering overwrite writes the Blockbench version as before.
+
+### Safeguards
+
+- Both are covered by tests that fail without the fix, including the four-images-become-one case.
+
 ## v1.5.1 - The icon now actually reaches the plugin list
 
 _2026-09-05_

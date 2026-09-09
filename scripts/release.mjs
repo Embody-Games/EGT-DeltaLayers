@@ -31,6 +31,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { writeMarkdown } from './changelog.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PLUGIN = 'delta_layers.js';
@@ -186,6 +187,10 @@ for (const key of Object.keys({ ...changelog, [version]: entry }).sort(compareVe
 	ordered[key] = key === version ? entry : changelog[key];
 }
 writeFileSync(changelogPath, `${JSON.stringify(ordered, null, 2)}\n`);
+
+// CHANGELOG.md is generated from changelog.json, and used not to be regenerated here, so
+// it silently fell behind by a version on every release. `git add -A` below picks it up.
+writeMarkdown(ordered);
 
 const packagePath = join(root, 'package.json');
 if (existsSync(packagePath)) {
