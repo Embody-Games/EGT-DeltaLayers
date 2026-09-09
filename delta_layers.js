@@ -337,6 +337,41 @@ function syncAllSidecars() {
 	}
 }
 
+/**
+ * Whether this session put the texture in the state it is in, and so may rewrite or remove
+ * its sidecar. 'applied' means we restored the stack; 'absent' means there was nothing to
+ * restore. Every other state - 'external', 'checking', 'pending', 'skipped', or no state at
+ * all - means the stack on disk is somebody else's, either because the user kept the flat
+ * texture, or because we could not read it, or because we never got that far.
+ */
+function sidecarIsOurs(texture) {
+	const state = texture && texture.__delta_layers_state;
+	return state === 'applied' || state === 'absent';
+}
+
+/** Said once per texture, because an automatic save is not a good place to nag. */
+function announceUnownedSidecar(texture) {
+	if (texture.__delta_layers_unowned_announced) return;
+	texture.__delta_layers_unowned_announced = true;
+	if (typeof Blockbench === 'undefined') return;
+	if (Blockbench.showQuickMessage) {
+		Blockbench.showQuickMessage('Layers for ' + texture.name + ' were not saved', 2500);
+	}
+	if (!Blockbench.showMessageBox) return;
+	Blockbench.showMessageBox({
+		title: 'Layers were not saved',
+		icon: 'layers',
+		message: '**' + texture.name + '** already has a saved layer stack that was not restored '
+			+ 'this session, so saving the layers you have now would have replaced it.\n\n'
+			+ 'The stack on disk has been left alone. Nothing you have painted is lost from the '
+			+ 'project, but it is not in the sidecar either.\n\n'
+			+ 'To take the stack on disk, use **Reload Delta Layers From Disk** on the texture. '
+			+ 'To replace it with what you have now, use **Save Delta Layers Now**. Both are in '
+			+ 'the texture\'s right-click menu.',
+		buttons: ['OK'],
+	});
+}
+
 function syncSidecarForTexture(texture) {
 	const fs = getFS();
 	if (!fs || !texture || !texture.path || !PathModule.isAbsolute(texture.path)) return;
@@ -349,6 +384,27 @@ function syncSidecarForTexture(texture) {
 	const worth_saving = texture.layers_enabled && texture.layers.length > 0 && !temporary;
 
 	if (worth_saving) {
+		// The delete branch below refuses to touch a sidecar this session never applied,
+		// on the grounds that it is not ours. The write has to refuse for exactly the same
+		// reason, and used not to: writeSidecar rebuilds the index from the live layers and
+		// then sweeps every layer PNG that is not in it. So a save while holding a stack we
+		// never restored did not just shelve the old one, it deleted it.
+		//
+		// That is how "Keep the file as it is", whose own text promises the saved layers
+		// stay on disk untouched, ended with them gone: keep the flat texture, turn layers
+		// on, add one, save. Same from every other state we did not apply from - file access
+		// refused, the readiness timeout, a sidecar we could not parse.
+		//
+		// Saving from the texture's own menu still writes, because that is someone asking
+		// for it on purpose rather than a save doing it behind their back.
+		if (!sidecarIsOurs(texture) && fs.existsSync(paths.json)) {
+			warn('not saving layers for "' + texture.name + '": its sidecar was never applied '
+				+ 'this session (' + (texture.__delta_layers_state || 'unknown') + '), so writing '
+				+ 'over it would delete the stack that is on disk. Use Save Delta Layers Now from '
+				+ 'the texture menu to overwrite it deliberately.');
+			announceUnownedSidecar(texture);
+			return;
+		}
 		writeSidecar(texture, paths);
 		return;
 	}
@@ -359,7 +415,7 @@ function syncSidecarForTexture(texture) {
 	// access denied, layer PNGs missing, user kept an external edit), the sidecar is not
 	// ours to delete.
 	if (!fs.existsSync(paths.json)) return;
-	if (texture.__delta_layers_state === 'applied' || texture.__delta_layers_state === 'absent') {
+	if (sidecarIsOurs(texture)) {
 		log('layers no longer present on "' + texture.name + '" - removing its sidecar');
 		stopLayerWatcher(texture);
 		removeSidecar(paths);
@@ -427,7 +483,7 @@ function carryForwardMissingItems(entries, previous, live_ids, written_files) {
 		+ ' forward that this version of Blockbench cannot represent');
 }
 
-function writeSidecar(texture, paths) {
+function writeSidecar(texture, paths, options) {
 	const fs = getFS();
 	if (!fs) return;
 
@@ -455,6 +511,9 @@ function writeSidecar(texture, paths) {
 	const layer_entries = [];
 	const live_ids = new Set();
 	let files_written = 0;
+	// Layers whose PNG on disk is not the one we wrote, so somebody else has been at it.
+	const kept_outside = [];
+	const overwrite_outside = !!(options && options.overwrite_outside_edits);
 
 	texture.layers.forEach((layer, index) => {
 		live_ids.add(layer.uuid);
@@ -500,20 +559,52 @@ function writeSidecar(texture, paths) {
 		const previous_entry = previous_by_id[layer.uuid];
 		const pixel_hash = hashLayerPixels(layer);
 
-		// Nothing about this layer's image changed since we last wrote it, the file is
-		// still where we put it, and it still has the bytes we wrote. Skip the PNG encode
-		// and the write entirely.
-		const untouched = !!(pixel_hash
+		// The layer PNGs are an interchange surface - the README tells people to open them
+		// in Photoshop or Aseprite - so the file on disk is only ours while it still holds
+		// the bytes we wrote. This used to be taken on trust: the file was compared against
+		// what the index recorded and what we remembered writing, but never against itself,
+		// so an edit made in another program was overwritten without anyone looking.
+		//
+		// previous_entry.hash is what the index recorded. hashBase64 and hashFile are the
+		// same digest over the same bytes, so the two compare directly. It costs one read
+		// of a small PNG per layer, next to the canvas read hashLayerPixels already does.
+		//
+		// Normally the watcher has pulled an outside edit into the layer already and the
+		// two agree by now. This is for when it has not: the watch setting was off, or the
+		// watcher never installed, or the edit landed while the project was closed.
+		const file_exists = fs.existsSync(file_path);
+		const recorded = !!(previous_entry && previous_entry.hash);
+		const on_disk = (recorded && file_exists) ? hashFile(file_path) : null;
+		const file_is_ours = !!(on_disk && on_disk === previous_entry.hash);
+		const changed_outside = !!(recorded && file_exists && on_disk && !file_is_ours);
+
+		// Nothing about this layer's image changed since we last wrote it, and the file is
+		// still where we put it with the bytes we put in it. Skip the PNG encode and the
+		// write entirely.
+		//
+		// Never on a forced write. Asking to overwrite the outside edits means writing the
+		// files from what is in Blockbench, and by then the index already records the
+		// hashes of the files we left alone - so every layer would look untouched.
+		const untouched = !overwrite_outside && !!(pixel_hash
 			&& layer.__eg_pixel_hash === pixel_hash
 			&& previous_entry
 			&& previous_entry.file === relative_file
-			&& previous_entry.hash
 			&& previous_entry.hash === layer.__eg_file_hash
-			&& fs.existsSync(file_path));
+			&& file_is_ours);
 
 		let file_hash;
 		if (untouched) {
 			file_hash = previous_entry.hash;
+		} else if (changed_outside && !overwrite_outside) {
+			// Leave the file alone and record what is actually in it, so the index
+			// describes the files that exist rather than the ones we meant to write.
+			//
+			// Recording it is deliberate: a layer nobody touches again is then quietly
+			// skipped on later saves instead of asking every time, and painting on that
+			// layer afterwards does overwrite the file - by then the user has been told
+			// and has chosen to go on working on it here.
+			file_hash = on_disk;
+			kept_outside.push({ name: layer.name, hash: on_disk });
 		} else {
 			// getSaveCopy() gives {name, offset, scale, opacity, visible, blend_mode,
 			// width, height, data_url} - a ready-made snapshot of exactly what we need.
@@ -579,11 +670,65 @@ function writeSidecar(texture, paths) {
 	texture.__delta_layers_state = 'applied';
 	startLayerWatcher(texture, paths);
 
+	if (kept_outside.length) {
+		warn('kept the version on disk for ' + plural(kept_outside.length, 'layer') + ' of "'
+			+ texture.name + '" that had been edited outside Blockbench: '
+			+ kept_outside.map((item) => '"' + item.name + '"').join(', '));
+		promptOutsideLayerEdits(texture, paths, kept_outside);
+	}
+
 	if (files_written || json_changed) {
 		log('saved ' + plural(layer_entries.length, 'layer') + ' for "' + texture.name + '" ('
 			+ files_written + ' image' + (files_written === 1 ? '' : 's') + ' rewritten'
 			+ (json_changed ? '' : ', index unchanged') + ')');
 	}
+}
+
+/**
+ * Some of this texture's layer PNGs had been changed outside Blockbench, so they were left
+ * alone rather than overwritten. Which means what is in the project and what is in those
+ * files now disagree, and only the user can say which one is right.
+ *
+ * Same shape as promptStaleSidecar, which asks the same question about the flat texture.
+ */
+function promptOutsideLayerEdits(texture, paths, kept) {
+	if (typeof Blockbench === 'undefined' || !Blockbench.showMessageBox) return;
+	const names = kept.map((item) => '- ' + item.name).join('\n');
+	Blockbench.showMessageBox({
+		title: 'Layer files changed outside Blockbench',
+		icon: 'layers',
+		message: 'These layers of **' + texture.name + '** have been edited in another program '
+			+ 'since Blockbench last wrote them:\n\n' + names + '\n\nThe files have been left as '
+			+ 'they are, so this save did not overwrite that work. What is in Blockbench for those '
+			+ 'layers is not on disk.',
+		commands: {
+			keep_files: {
+				text: 'Keep the files on disk',
+				icon: 'folder',
+				description: 'Reload Delta Layers From Disk on this texture brings them into the project.',
+			},
+			overwrite: {
+				text: 'Overwrite them with what is in Blockbench',
+				icon: 'save',
+				description: 'Writes the layers as they are here. The outside edits are lost.',
+			},
+		},
+		buttons: ['Cancel'],
+		cancel: 0,
+	}, (command) => {
+		if (command !== 'overwrite') {
+			log('kept the layer files on disk for "' + texture.name + '"');
+			return;
+		}
+		try {
+			writeSidecar(texture, paths, { overwrite_outside_edits: true });
+			if (Blockbench.showQuickMessage) {
+				Blockbench.showQuickMessage('Overwrote ' + plural(kept.length, 'layer file'), 1600);
+			}
+		} catch (error) {
+			fail('could not overwrite the layer files', error);
+		}
+	});
 }
 
 /** Layer files left over from a previous save (renamed or deleted layers). */

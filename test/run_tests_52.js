@@ -280,6 +280,104 @@ async function reopen() {
 	await settle();
 	check('and refuses to overwrite it', readSidecar().version === 99, readSidecar().version);
 
+
+	// =====================================================================
+	section('9. keeping the flat texture does not destroy the saved layers');
+	// The stale-texture prompt promises "the saved layers stay on disk, untouched" when you
+	// keep the flat file. Saving after that used to rebuild the index from whatever layers
+	// were live and then sweep every layer PNG that was not in it, so the stack it had just
+	// promised to leave alone was deleted. This is the exact sequence: keep the flat
+	// texture, turn layers on, add one, save.
+	resetProject();
+	await buildGroupedTexture();
+	quickSave();
+	await settle();
+	const files_before = fs.readdirSync(LAYERS_DIR).sort();
+	const index_before = fs.readFileSync(SIDECAR_PATH, 'utf-8');
+	check('four layer images on disk to start with', files_before.length === 4, files_before);
+
+	// somebody paints on the flat PNG in another program, so the stack looks stale
+	writePng(TEXTURE_PATH, 32, 32, '#0a0a0a');
+	globalThis.Blockbench.message_box_calls.length = 0;
+	globalThis.Blockbench.message_box_answer = 'keep_flat';
+	texture = await reopen();
+	check('the stale prompt was shown',
+		globalThis.Blockbench.message_box_calls.some((o) => /changed outside/i.test(o.title || '')),
+		globalThis.Blockbench.message_box_calls.map((o) => o.title));
+	check('and the stack was not restored', texture.layers.length === 0, texture.layers.length);
+
+	texture.layers_enabled = true;
+	addLayer(texture, 'A fresh start', '#123456');
+	texture.selected_layer = texture.layers[0];
+	texture.updateLayerChanges(true);
+	texture.saved = false;
+	globalThis.Blockbench.message_box_calls.length = 0;
+	globalThis.Blockbench.message_box_answer = undefined;
+	quickSave();
+	await settle();
+
+	const files_after = fs.readdirSync(LAYERS_DIR).sort();
+	check('every layer image is still on disk', files_after.join('|') === files_before.join('|'),
+		{ before: files_before, after: files_after });
+	check('the index on disk is untouched',
+		fs.readFileSync(SIDECAR_PATH, 'utf-8') === index_before);
+	check('and the user was told the layers were not saved',
+		globalThis.Blockbench.message_box_calls.some((o) => /not saved/i.test(o.title || '')),
+		globalThis.Blockbench.message_box_calls.map((o) => o.title));
+
+	// =====================================================================
+	section('10. a layer image edited outside Blockbench is not overwritten');
+	// The watcher normally pulls an outside edit into the layer, so by the time a save
+	// happens the two agree. This is the case where it does not: the watch setting is off.
+	resetProject();
+	await buildGroupedTexture();
+	quickSave();
+	await settle();
+	globalThis.settings.delta_layers_watch.value = false;
+
+	texture = await reopen();
+	const base_entry = readSidecar().layers.find((e) => e.name === 'Base Color');
+	const base_file = PathModule.join(MODEL_DIR, base_entry.file);
+	const base_layer = texture.layers.find((l) => l.name === 'Base Color');
+	check('the base layer and its file are both there',
+		!!(base_layer && fs.existsSync(base_file)), base_entry && base_entry.file);
+
+	// somebody else edits the layer PNG
+	writePng(base_file, 32, 32, '#00ffff');
+	const outside_bytes = fs.readFileSync(base_file);
+
+	// and it is painted on in Blockbench too, so the save really does want to write it
+	base_layer.ctx.drawImage(solid(32, 32, '#ff00ff'), 0, 0);
+	texture.updateLayerChanges(true);
+	texture.saved = false;
+	globalThis.Blockbench.message_box_calls.length = 0;
+	globalThis.Blockbench.message_box_answer = 'keep_files';
+	quickSave();
+	await settle();
+
+	check('the file on disk still holds the outside edit',
+		fs.readFileSync(base_file).equals(outside_bytes));
+	check('the user was asked which one to keep',
+		globalThis.Blockbench.message_box_calls.some((o) => /changed outside/i.test(o.title || '')),
+		globalThis.Blockbench.message_box_calls.map((o) => o.title));
+	check('the index records the file that is actually there',
+		readSidecar().layers.find((e) => e.name === 'Base Color').hash !== base_entry.hash);
+
+	// a second outside edit, and this time the answer is to overwrite
+	writePng(base_file, 32, 32, '#ffff00');
+	const second_outside = fs.readFileSync(base_file);
+	base_layer.ctx.drawImage(solid(32, 32, '#ff00ff'), 0, 0);
+	texture.updateLayerChanges(true);
+	texture.saved = false;
+	globalThis.Blockbench.message_box_calls.length = 0;
+	globalThis.Blockbench.message_box_answer = 'overwrite';
+	quickSave();
+	await settle();
+
+	check('answering overwrite does write the Blockbench version',
+		!fs.readFileSync(base_file).equals(second_outside));
+	globalThis.settings.delta_layers_watch.value = true;
+
 	console.log('\n' + passes + ' passed, ' + failures + ' failed');
 	process.exit(failures ? 1 : 0);
 })().catch((error) => {
