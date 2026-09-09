@@ -1,6 +1,6 @@
 {
   "name": "egt-delta-layers",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "private": true,
   "description": "Blockbench plugin that keeps a texture's layer stack alive across saves by writing a sidecar next to the texture PNG.",
   "author": "Embody Games",

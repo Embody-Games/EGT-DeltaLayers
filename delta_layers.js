@@ -33,7 +33,7 @@
 
 // Must match the filename: delta_layers.js
 const PLUGIN_ID = 'delta_layers';
-const PLUGIN_VERSION = '1.5.1';
+const PLUGIN_VERSION = '1.6.0';
 const SIDECAR_VERSION = 3; // v3 adds layer groups (type/parent/folded); v1 and v2 still load
 const SETTING_ID = 'delta_layers_persist';
 const WATCH_SETTING_ID = 'delta_layers_watch';
